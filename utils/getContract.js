@@ -13,7 +13,7 @@ module.exports = function (contractName, web3) {
             };
 
         case 'BlockRewardAuRa':
-            abi = require('../posdao-contracts/build/contracts/BlockRewardAuRa').abi;
+            abi = require('../posdao-contracts/build/contracts/BlockRewardAuRaCOIN').abi;
             return {
                 address: constants.BLOCK_REWARD_ADDRESS,
                 abi: abi,
@@ -37,7 +37,7 @@ module.exports = function (contractName, web3) {
             };
 
         case 'StakingAuRa':
-            abi = require('../posdao-contracts/build/contracts/StakingAuRa').abi;
+            abi = require('../posdao-contracts/build/contracts/StakingAuRaCOIN').abi;
             return {
                 address: constants.STAKING_CONTRACT_ADDRESS,
                 abi: abi,
