@@ -72,6 +72,41 @@ describe("Candidates place stakes using native coin on themselves", () => {
         }
     });
 
+    it("Owner mints (4x minStake) native coins to candidates", async () => {
+        let candidateCoinsBN = minCandidateStakeBN.mul(new BN("4"));
+        await SnS(web3, {
+            from: OWNER,
+            to: BlockRewardAuRa.address,
+            method: BlockRewardAuRa.instance.methods.setErcToNativeBridgesAllowed(
+                [OWNER]
+            ),
+            gasPrice: "0",
+        });
+        for (candidate of constants.CANDIDATES) {
+            console.log("**** candidate =", JSON.stringify(candidate));
+            let iBalance = await web3.eth.getBalance(candidate.staking);
+            let iBalanceBN = new BN(iBalance.toString());
+            const tx = await SnS(web3, {
+                from: OWNER,
+                to: BlockRewardAuRa.address,
+                method: BlockRewardAuRa.instance.methods.addExtraReceiver(
+                    candidateCoinsBN.toString(),
+                    candidate.staking
+                ),
+                gasPrice: "0",
+            });
+            pp.tx(tx);
+            expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(
+                true
+            );
+            let fBalance = await web3.eth.getBalance(candidate.staking);
+            let fBalanceBN = new BN(fBalance.toString());
+            expect(
+                fBalanceBN,
+                `Amount of minted native coins is incorrect for ${candidate.staking}`
+            ).to.be.bignumber.equal(iBalanceBN.add(candidateCoinsBN));
+        }
+    });
     it("Candidates add pools for themselves", async () => {
         let stakeBN = minCandidateStakeBN.clone();
         console.log("**** stake = " + stakeBN.toString());
@@ -134,27 +169,44 @@ describe("Candidates place stakes using native coin on themselves", () => {
             ).to.be.bignumber.equal(iStakeBN.add(stakeBN));
         }
     });
-        it('Candidates place stakes on themselves', async () => {
-            let stakeBN = minCandidateStakeBN.clone();
-            console.log('**** stake = ' + stakeBN.toString());
-            for (candidate of constants.CANDIDATES) {
-                console.log('**** candidate =', JSON.stringify(candidate));
-                let candidatePoolId = await ValidatorSetAuRa.instance.methods.idByStakingAddress(candidate.staking).call();
-                let iStake = await StakingAuRa.instance.methods.stakeAmount(candidatePoolId, '0x0000000000000000000000000000000000000000').call();
-                let iStakeBN = new BN(iStake.toString());
-                let tx = await sendInStakingWindow(web3, async () => {
-                    const latestBlock = await getLatestBlock(web3);
-                    return SnS(web3, {
+    it("Candidates place stakes on themselves", async () => {
+        let stakeBN = minCandidateStakeBN.clone();
+        console.log("**** stake = " + stakeBN.toString());
+        for (candidate of constants.CANDIDATES) {
+            console.log("**** candidate =", JSON.stringify(candidate));
+            let candidatePoolId = await ValidatorSetAuRa.instance.methods
+                .idByStakingAddress(candidate.staking)
+                .call();
+            let iStake = await StakingAuRa.instance.methods
+                .stakeAmount(
+                    candidatePoolId,
+                    "0x0000000000000000000000000000000000000000"
+                )
+                .call();
+            let iStakeBN = new BN(iStake.toString());
+            let tx = await sendInStakingWindow(web3, async () => {
+                const latestBlock = await getLatestBlock(web3);
+                return SnS(
+                    web3,
+                    {
                         from: candidate.staking,
                         to: StakingAuRa.address,
-                        value: stakeBN.toString(),  // Send native coins as stake
-                        method: StakingAuRa.instance.methods.stake(candidate.staking, '0'),  // _amount ignored for native coins
-                        gasPrice: '1000000000', // maxPriorityFeePerGas for EIP-1559, maxFeePerGas is calculated as baseFeePerGas + maxPriorityFeePerGas
-                        gasLimit: '400000',
-                    }, null, latestBlock.baseFeePerGas, [
+                        value: stakeBN.toString(), // Send native coins as stake
+                        method: StakingAuRa.instance.methods.stake(
+                            candidate.staking,
+                            "0"
+                        ), // _amount ignored for native coins
+                        gasPrice: "1000000000", // maxPriorityFeePerGas for EIP-1559, maxFeePerGas is calculated as baseFeePerGas + maxPriorityFeePerGas
+                        gasLimit: "400000",
+                    },
+                    null,
+                    latestBlock.baseFeePerGas,
+                    [
                         [
                             ValidatorSetAuRa.address,
-                            ["0x0000000000000000000000000000000000000000000000000000000000000016"]
+                            [
+                                "0x0000000000000000000000000000000000000000000000000000000000000016",
+                            ],
                         ],
                         [
                             StakingAuRa.address,
@@ -162,157 +214,419 @@ describe("Candidates place stakes using native coin on themselves", () => {
                                 "0x0000000000000000000000000000000000000000000000000000000000000005",
                                 "0x0000000000000000000000000000000000000000000000000000000000000024",
                                 "0x000000000000000000000000000000000000000000000000000000000000003A",
-                            ]
-                        ]
-                    ]); // Use EIP-2930 here (and EIP-1559 if supported)
-                });
-                pp.tx(tx);
-                expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(true);
-                let fStake = await StakingAuRa.instance.methods.stakeAmount(candidatePoolId, '0x0000000000000000000000000000000000000000').call();
-                let fStakeBN = new BN(fStake.toString());
-                expect(fStakeBN, `Stake on candidate ${candidate.staking} didn't increase`).to.be.bignumber.equal(iStakeBN.add(stakeBN));
-            }
+                            ],
+                        ],
+                    ]
+                ); // Use EIP-2930 here (and EIP-1559 if supported)
+            });
+            pp.tx(tx);
+            expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(
+                true
+            );
+            let fStake = await StakingAuRa.instance.methods
+                .stakeAmount(
+                    candidatePoolId,
+                    "0x0000000000000000000000000000000000000000"
+                )
+                .call();
+            let fStakeBN = new BN(fStake.toString());
+            expect(
+                fStakeBN,
+                `Stake on candidate ${candidate.staking} didn't increase`
+            ).to.be.bignumber.equal(iStakeBN.add(stakeBN));
+        }
+    });
+    it("Delegators place stakes into the second candidate's pool", async () => {
+        const candidate = constants.CANDIDATES[1].staking;
+        const candidatePoolId = await ValidatorSetAuRa.instance.methods
+            .idByStakingAddress(candidate)
+            .call();
+
+        let promises;
+        let nonce;
+        let txs;
+
+        console.log(
+            "**** Owner mints native coins to delegators (4x minStake + 1 ETH)"
+        );
+
+        const delegatorNativeBN = minDelegatorStakeBN
+            .mul(new BN("4"))
+            .add(new BN("1000000000000000000"));
+        let latestBlock = await getLatestBlock(web3);
+
+        await SnS(web3, {
+            from: OWNER,
+            to: BlockRewardAuRa.address,
+            method: BlockRewardAuRa.instance.methods.setErcToNativeBridgesAllowed(
+                [OWNER]
+            ),
+            gasPrice: "0",
         });
-          it('Delegators place stakes into the second candidate\'s pool', async () => {
-                const candidate = constants.CANDIDATES[1].staking;
-                const candidatePoolId = await ValidatorSetAuRa.instance.methods.idByStakingAddress(candidate).call();
-        
-                let promises;
-                let nonce;
-                let txs;
-        
-                console.log('**** Owner mints native coins to delegators (4x minStake + 1 ETH)');
-        
-                const delegatorNativeBN = minDelegatorStakeBN.mul(new BN('4')).add(new BN('1000000000000000000'));
-                let latestBlock = await getLatestBlock(web3);
-        
-                await SnS(web3, {
+
+        latestBlock = await getLatestBlock(web3);
+
+        promises = [];
+        nonce = await web3.eth.getTransactionCount(OWNER);
+        for (let i = 0; i < delegatorsNumber; i++) {
+            const delegator = delegators[i];
+            const prm = SnS(
+                web3,
+                {
                     from: OWNER,
                     to: BlockRewardAuRa.address,
-                    method: BlockRewardAuRa.instance.methods.setErcToNativeBridgesAllowed([OWNER]),
-                    gasPrice: '0'
-                });
-        
-                latestBlock = await getLatestBlock(web3);
-        
-                promises = [];
-                nonce = await web3.eth.getTransactionCount(OWNER);
-                for (let i = 0; i < delegatorsNumber; i++) {
-                    const delegator = delegators[i];
-                    const prm = SnS(web3, {
-                        from: OWNER,
-                        to: BlockRewardAuRa.address,
-                        method: BlockRewardAuRa.instance.methods.addExtraReceiver(delegatorNativeBN.toString(), delegator),
-                        gasPrice: '0',
-                        nonce: nonce++
-                    }, null, latestBlock.baseFeePerGas);
-                    promises.push(prm);
-                }
-                txs = await Promise.all(promises);
-                for (const tx of txs) {
-                    expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(true);
-                }
-        
-                for (let i = 0; i < delegatorsNumber; i++) {
-                    const delegator = delegators[i];
-                    const delegatorBalance = await web3.eth.getBalance(delegator);
-                    expect(delegatorBalance, `Amount of minted coins is incorrect for ${delegator}`).to.be.equal(delegatorNativeBN.toString());
-                }
-        
-                console.log('**** Delegators place stakes on the candidate');
-        
-                latestBlock = await getLatestBlock(web3);
-        
-                promises = [];
-                for (let i = 0; i < delegatorsNumber; i++) {
-                    const delegator = delegators[i];
-                    const prm = SnS(web3, {
-                        from: delegator,
-                        to: StakingAuRa.address,
-                        value: minDelegatorStakeBN.toString(),  // Send native coins as stake
-                        method: StakingAuRa.instance.methods.stake(candidate, '0'),  // _amount ignored for native coins
-                        gasPrice: '1000000000', // maxPriorityFeePerGas for EIP-1559, maxFeePerGas is calculated as baseFeePerGas + maxPriorityFeePerGas
-                        gasLimit: '400000'
-                    }, null, latestBlock.baseFeePerGas);
-                    promises.push(prm);
-                }
-                txs = await Promise.all(promises);
-                for (const tx of txs) {
-                    expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(true);
-                }
-        
-                for (let i = 0; i < delegatorsNumber; i++) {
-                    const fStake = await StakingAuRa.instance.methods.stakeAmount(candidatePoolId, delegators[i]).call();
-                    const fStakeBN = new BN(fStake.toString());
-                    expect(fStakeBN, `Stake on candidate ${candidate} didn't increase`).to.be.bignumber.equal(minDelegatorStakeBN);
-                }
-        
-                // Test moving of stakes
-                console.log('**** One of delegators moves their stake to another candidate');
-                let candidate_rec = constants.CANDIDATES[2].staking;
-                let candidate_rec_id = await ValidatorSetAuRa.instance.methods.idByStakingAddress(constants.CANDIDATES[2].staking).call();
-                let delegator = delegators[0];
-        
-                // initial stake on the initial candidate
-                let iStake = await StakingAuRa.instance.methods.stakeAmount(candidatePoolId, delegator).call();
-                let iStakeBN = new BN(iStake.toString());
-        
-                // initial stake on the target candidate
-                let iStake_rec = await StakingAuRa.instance.methods.stakeAmount(candidate_rec_id, delegator).call();
-                let iStake_recBN = new BN(iStake_rec.toString());
-        
-                let tx = await SnS(web3, {
+                    method: BlockRewardAuRa.instance.methods.addExtraReceiver(
+                        delegatorNativeBN.toString(),
+                        delegator
+                    ),
+                    gasPrice: "0",
+                    nonce: nonce++,
+                },
+                null,
+                latestBlock.baseFeePerGas
+            );
+            promises.push(prm);
+        }
+        txs = await Promise.all(promises);
+        for (const tx of txs) {
+            expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(
+                true
+            );
+        }
+
+        for (let i = 0; i < delegatorsNumber; i++) {
+            const delegator = delegators[i];
+            const delegatorBalance = await web3.eth.getBalance(delegator);
+            expect(
+                delegatorBalance,
+                `Amount of minted coins is incorrect for ${delegator}`
+            ).to.be.equal(delegatorNativeBN.toString());
+        }
+
+        console.log("**** Delegators place stakes on the candidate");
+
+        latestBlock = await getLatestBlock(web3);
+
+        promises = [];
+        for (let i = 0; i < delegatorsNumber; i++) {
+            const delegator = delegators[i];
+            const prm = SnS(
+                web3,
+                {
                     from: delegator,
                     to: StakingAuRa.address,
-                    method: StakingAuRa.instance.methods.moveStake(candidate, candidate_rec, minDelegatorStakeBN.toString()),  // _amount set for native coins
-                    gasPrice: await calcMinGasPrice(web3),
-                    gasLimit: '500000',
-                });
-                expect(tx.status, `Tx to move stake failed: ${tx.transactionHash}`).to.equal(true);
-        
-                // final stake on the initial candidate (should have decreased)
-                let fStake = await StakingAuRa.instance.methods.stakeAmount(candidatePoolId, delegator).call();
-                let fStakeBN = new BN(fStake.toString());
-                let dStakeBN = fStakeBN.sub(iStakeBN);
-                expect(dStakeBN, `Stake on initial candidate ${candidate} didn't decrease`).to.be.bignumber.equal(minDelegatorStakeBN.neg()); // x.neg() == -x
-        
-                // final stake on the target candidate (should have increased)
-                let fStake_rec = await StakingAuRa.instance.methods.stakeAmount(candidate_rec_id, delegator).call();
-                let fStake_recBN = new BN(fStake_rec.toString());
-                let dStake_recBN = fStake_recBN.sub(iStake_recBN);
-                expect(dStake_recBN, `Stake on target candidate ${candidate_rec} didn't increase`).to.be.bignumber.equal(minDelegatorStakeBN);
-        
-                console.log('**** Moving stake must fail if delegator tries to move their stake to the same candidate');
-                try {
-                    let tx2 = await SnS(web3, {
-                        from: delegator,
-                        to: StakingAuRa.address,
-                        method: StakingAuRa.instance.methods.moveStake(candidate_rec, candidate_rec, minDelegatorStakeBN.toString()),
-                        gasPrice: await calcMinGasPrice(web3),
-                        gasLimit: '500000',
-                    });
-                    expect(false, `Tx didn't throw an exception: ${tx2.transactionHash}. Tx status: ${tx2.status}`).to.equal(true);
-                }
-                catch (e) {
-                    const eString = e ? e.toString() : '';
-                    expect(e && (eString.includes(FAILED_EXCEPTION_MSG) || eString.includes(REVERT_EXCEPTION_MSG)), `Tx threw an unexpected exception: ` + eString).to.equal(true);
-                }
-        
-                console.log('**** Delegator can\'t move more staking tokens than one has');
-                try {
-                    let tx3 = await SnS(web3, {
-                        from: delegator,
-                        to: StakingAuRa.address,
-                        method: StakingAuRa.instance.methods.moveStake(candidate, candidate_rec, minDelegatorStakeBN.toString()),
-                        gasPrice: await calcMinGasPrice(web3),
-                        gasLimit: '500000',
-                    });
-                    expect(false, `Tx didn't throw an exception: ${tx3.transactionHash}. Tx status: ${tx3.status}`).to.equal(true);
-                }
-                catch (e) {
-                    const eString = e ? e.toString() : '';
-                    expect(e && (eString.includes(FAILED_EXCEPTION_MSG) || eString.includes(REVERT_EXCEPTION_MSG)), `Tx threw an unexpected exception: ` + eString).to.equal(true);
-                }
+                    value: minDelegatorStakeBN.toString(), // Send native coins as stake
+                    method: StakingAuRa.instance.methods.stake(candidate, "0"), // _amount ignored for native coins
+                    gasPrice: "1000000000", // maxPriorityFeePerGas for EIP-1559, maxFeePerGas is calculated as baseFeePerGas + maxPriorityFeePerGas
+                    gasLimit: "400000",
+                },
+                null,
+                latestBlock.baseFeePerGas
+            );
+            promises.push(prm);
+        }
+        txs = await Promise.all(promises);
+        for (const tx of txs) {
+            expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(
+                true
+            );
+        }
+
+        for (let i = 0; i < delegatorsNumber; i++) {
+            const fStake = await StakingAuRa.instance.methods
+                .stakeAmount(candidatePoolId, delegators[i])
+                .call();
+            const fStakeBN = new BN(fStake.toString());
+            expect(
+                fStakeBN,
+                `Stake on candidate ${candidate} didn't increase`
+            ).to.be.bignumber.equal(minDelegatorStakeBN);
+        }
+
+        // Test moving of stakes
+        console.log(
+            "**** One of delegators moves their stake to another candidate"
+        );
+        let candidate_rec = constants.CANDIDATES[2].staking;
+        let candidate_rec_id = await ValidatorSetAuRa.instance.methods
+            .idByStakingAddress(constants.CANDIDATES[2].staking)
+            .call();
+        let delegator = delegators[0];
+
+        // initial stake on the initial candidate
+        let iStake = await StakingAuRa.instance.methods
+            .stakeAmount(candidatePoolId, delegator)
+            .call();
+        let iStakeBN = new BN(iStake.toString());
+
+        // initial stake on the target candidate
+        let iStake_rec = await StakingAuRa.instance.methods
+            .stakeAmount(candidate_rec_id, delegator)
+            .call();
+        let iStake_recBN = new BN(iStake_rec.toString());
+
+        let tx = await SnS(web3, {
+            from: delegator,
+            to: StakingAuRa.address,
+            method: StakingAuRa.instance.methods.moveStake(
+                candidate,
+                candidate_rec,
+                minDelegatorStakeBN.toString()
+            ), // _amount set for native coins
+            gasPrice: await calcMinGasPrice(web3),
+            gasLimit: "500000",
+        });
+        expect(
+            tx.status,
+            `Tx to move stake failed: ${tx.transactionHash}`
+        ).to.equal(true);
+
+        // final stake on the initial candidate (should have decreased)
+        let fStake = await StakingAuRa.instance.methods
+            .stakeAmount(candidatePoolId, delegator)
+            .call();
+        let fStakeBN = new BN(fStake.toString());
+        let dStakeBN = fStakeBN.sub(iStakeBN);
+        expect(
+            dStakeBN,
+            `Stake on initial candidate ${candidate} didn't decrease`
+        ).to.be.bignumber.equal(minDelegatorStakeBN.neg()); // x.neg() == -x
+
+        // final stake on the target candidate (should have increased)
+        let fStake_rec = await StakingAuRa.instance.methods
+            .stakeAmount(candidate_rec_id, delegator)
+            .call();
+        let fStake_recBN = new BN(fStake_rec.toString());
+        let dStake_recBN = fStake_recBN.sub(iStake_recBN);
+        expect(
+            dStake_recBN,
+            `Stake on target candidate ${candidate_rec} didn't increase`
+        ).to.be.bignumber.equal(minDelegatorStakeBN);
+
+        console.log(
+            "**** Moving stake must fail if delegator tries to move their stake to the same candidate"
+        );
+        try {
+            let tx2 = await SnS(web3, {
+                from: delegator,
+                to: StakingAuRa.address,
+                method: StakingAuRa.instance.methods.moveStake(
+                    candidate_rec,
+                    candidate_rec,
+                    minDelegatorStakeBN.toString()
+                ),
+                gasPrice: await calcMinGasPrice(web3),
+                gasLimit: "500000",
             });
-            
+            expect(
+                false,
+                `Tx didn't throw an exception: ${tx2.transactionHash}. Tx status: ${tx2.status}`
+            ).to.equal(true);
+        } catch (e) {
+            const eString = e ? e.toString() : "";
+            expect(
+                e &&
+                    (eString.includes(FAILED_EXCEPTION_MSG) ||
+                        eString.includes(REVERT_EXCEPTION_MSG)),
+                `Tx threw an unexpected exception: ` + eString
+            ).to.equal(true);
+        }
+
+        console.log(
+            "**** Delegator can't move more staking tokens than one has"
+        );
+        try {
+            let tx3 = await SnS(web3, {
+                from: delegator,
+                to: StakingAuRa.address,
+                method: StakingAuRa.instance.methods.moveStake(
+                    candidate,
+                    candidate_rec,
+                    minDelegatorStakeBN.toString()
+                ),
+                gasPrice: await calcMinGasPrice(web3),
+                gasLimit: "500000",
+            });
+            expect(
+                false,
+                `Tx didn't throw an exception: ${tx3.transactionHash}. Tx status: ${tx3.status}`
+            ).to.equal(true);
+        } catch (e) {
+            const eString = e ? e.toString() : "";
+            expect(
+                e &&
+                    (eString.includes(FAILED_EXCEPTION_MSG) ||
+                        eString.includes(REVERT_EXCEPTION_MSG)),
+                `Tx threw an unexpected exception: ` + eString
+            ).to.equal(true);
+        }
+    });
+    it("Candidates are in validator set in the new staking epoch", async () => {
+        console.log("***** Wait for staking epoch to change");
+        let validators = (await waitForValidatorSetChange(web3)).map((v) =>
+            v.toLowerCase()
+        );
+        for (candidate of constants.CANDIDATES) {
+            let validatorIndex = validators.indexOf(
+                candidate.mining.toLowerCase()
+            );
+            expect(
+                validatorIndex,
+                `Candidate ${JSON.stringify(candidate)}
+                        is not in the validator set in the new epoch`
+            ).to.not.equal(-1);
+        }
+    });
+
+    it("New native coins are minted and deposited to the BlockRewardAuRa contract; delegator claims ordered withdrawal", async () => {
+        const miningAddresses = await ValidatorSetAuRa.instance.methods
+            .getValidators()
+            .call();
+        const unremovableValidator = await ValidatorSetAuRa.instance.methods
+            .unremovableValidator()
+            .call();
+        const candidate = constants.CANDIDATES[2].staking;
+        const candidatePoolId = await ValidatorSetAuRa.instance.methods
+            .idByStakingAddress(constants.CANDIDATES[2].staking)
+            .call();
+        const delegator = delegators[0];
+
+        const stakingEpoch = await StakingAuRa.instance.methods
+            .stakingEpoch()
+            .call();
+        const iBlockRewardAuRaBalance = new BN(
+            await web3.eth.getBalance(BlockRewardAuRa.address)
+        );
+
+        let validators = {};
+        for (mining of miningAddresses) {
+            const poolId = await ValidatorSetAuRa.instance.methods
+                .idByMiningAddress(mining)
+                .call();
+            const staking = (
+                await ValidatorSetAuRa.instance.methods
+                    .stakingByMiningAddress(mining)
+                    .call()
+            ).toLowerCase();
+            const balance = await BlockRewardAuRa.instance.methods
+                .epochPoolNativeReward(stakingEpoch, poolId)
+                .call();
+            if (poolId == unremovableValidator) {
+                // don't check unremovable validator because they didn't stake
+                continue;
+            }
+            validators[mining] = {
+                poolId,
+                staking: staking,
+                balance: new BN(balance.toString()),
+            };
+        }
+
+        // initial stake on the candidate
+        const iStake = await StakingAuRa.instance.methods
+            .stakeAmount(candidatePoolId, delegator)
+            .call();
+        const iStakeBN = new BN(iStake.toString());
+        console.log(
+            `***** Initial stake of delegator ${delegator} on candidate ${candidate} is ${iStakeBN.toString()}, going to order withdrawal of ${minDelegatorStakeBN.toString()}`
+        );
+        const tx = await sendInStakingWindow(web3, async () => {
+            return SnS(web3, {
+                from: delegator,
+                to: StakingAuRa.address,
+                method: StakingAuRa.instance.methods.orderWithdraw(
+                    candidate,
+                    minDelegatorStakeBN.toString()
+                ),
+                gasPrice: await calcMinGasPrice(web3),
+            });
+        });
+        pp.tx(tx);
+        expect(
+            tx.status,
+            `Tx to order withdrawal failed: ${tx.transactionHash}`
+        ).to.equal(true);
+
+        const fStake = await StakingAuRa.instance.methods
+            .stakeAmount(candidatePoolId, delegator)
+            .call();
+        const fStakeBN = new BN(fStake.toString());
+
+        expect(
+            fStakeBN,
+            `Delegator\'s stake didn\'t decrease correctly after they (${delegator}) ordered the withdrawal: ` +
+                `initial = ${iStakeBN.toString()}, final = ${fStakeBN.toString()}, ordered amount = ${minDelegatorStakeBN.toString()}`
+        ).to.be.bignumber.equal(iStakeBN.sub(minDelegatorStakeBN));
+
+        await waitForNextStakingEpoch(web3);
+
+        await new Promise((r) => setTimeout(r, 10000));
+
+        console.log("***** Check BlockRewardAuRa and pool balances changing");
+        const fBlockRewardAuRaBalance = new BN(
+            await web3.eth.getBalance(BlockRewardAuRa.address)
+        );
+        expect(
+            fBlockRewardAuRaBalance,
+            `BlockRewardAuRa contract did not receive minted native coins`
+        ).to.be.bignumber.above(iBlockRewardAuRaBalance);
+        console.log(
+            `**** BlockRewardAuRa had ${iBlockRewardAuRaBalance} native coins before and ${fBlockRewardAuRaBalance} native coins after.`
+        );
+        for (mining in validators) {
+            const new_balance = new BN(
+                await BlockRewardAuRa.instance.methods
+                    .epochPoolNativeReward(
+                        stakingEpoch,
+                        validators[mining].poolId
+                    )
+                    .call()
+            );
+            expect(
+                new_balance,
+                `Pool with mining address ${mining} did not receive minted native coins`
+            ).to.be.bignumber.above(validators[mining].balance);
+            console.log(
+                `**** the pool ${mining} had ${validators[mining].balance} native coins before and ${new_balance} native coins after.`
+            );
+        }
+
+        const iOrdered = await StakingAuRa.instance.methods
+            .orderedWithdrawAmount(candidatePoolId, delegator)
+            .call();
+        const iOrderedBN = new BN(iOrdered.toString());
+
+        console.log("***** Claiming ordered withdrawal");
+        const tx2 = await sendInStakingWindow(web3, async () => {
+            return SnS(web3, {
+                from: delegator,
+                to: StakingAuRa.address,
+                method: StakingAuRa.instance.methods.claimOrderedWithdraw(
+                    candidate
+                ),
+                gasPrice: await calcMinGasPrice(web3),
+            });
+        });
+        pp.tx(tx2);
+
+        const fOrdered = await StakingAuRa.instance.methods
+            .orderedWithdrawAmount(candidatePoolId, delegator)
+            .call();
+        const fOrderedBN = new BN(fOrdered.toString());
+
+        expect(
+            fOrderedBN,
+            `Delegator\'s ordered amount didn\'t decrease correctly after they (${delegator}) claimed the withdrawal: ` +
+                `initial = ${iOrderedBN.toString()}, final = ${fOrderedBN.toString()}, claimed amount = ${minDelegatorStakeBN.toString()}`
+        ).to.be.bignumber.equal(iOrderedBN.sub(minDelegatorStakeBN));
+
+        expect(
+            fOrderedBN,
+            `Delegator\'s ordered amount now should be zero: ` +
+                `initial = ${iOrderedBN.toString()}, final = ${fOrderedBN.toString()}, claimed amount = ${minDelegatorStakeBN.toString()}`
+        ).to.be.bignumber.equal(new BN(0));
+    });
 });
+function sleep(millis) {
+    return new Promise((resolve) => setTimeout(resolve, millis));
+}
