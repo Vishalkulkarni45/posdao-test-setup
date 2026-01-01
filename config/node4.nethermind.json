@@ -3,9 +3,9 @@
     "WebSocketsEnabled": true,
     "StoreReceipts": true,
     "IsMining": true,
-    "ChainSpecPath": "./data/spec.json",
-    "BaseDbPath": "./data/node4",
-    "LogDirectory": "./data/node4",
+    "ChainSpecPath": "/nethermind/data/spec.json",
+    "BaseDbPath": "/nethermind/data/node4",
+    "LogDirectory": "/nethermind/data/node4",
     "LogFileName": "nethermind.logs.txt",
     "StaticNodesPath": "./data/reserved-peers",
     "DiagnosticMode": "MemDb"
