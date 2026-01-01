@@ -1,12 +1,13 @@
 {
   "Init": {
     "WebSocketsEnabled": true,
-    "StoreReceipts" : true,    
+    "StoreReceipts": true,
     "IsMining": true,
-    "ChainSpecPath": "./data/spec.json",  
+    "ChainSpecPath": "./data/spec.json",
     "BaseDbPath": "./data/node0",
     "LogDirectory": "./data/node0",
-    "LogFileName": "nethermind.logs.txt"
+    "LogFileName": "nethermind.logs.txt",
+    "DiagnosticMode": "MemDb"
   },
   "Network": {
     "DiscoveryPort": 30300,
@@ -25,13 +26,12 @@
     "CacheIndexAndFilterBlocks": true,
     "BlockInfosDbCacheIndexAndFilterBlocks": false,
     "HeadersDbCacheIndexAndFilterBlocks": false,
-    "BlocksDbCacheIndexAndFilterBlocks": false    
+    "BlocksDbCacheIndexAndFilterBlocks": false
   },
   "Sync": {
     "FastSync": false
   },
-  "KeyStore":
-  {
+  "KeyStore": {
     "KeyStoreDirectory": "./data/node0/keys/DPoSChain"
   }
 }

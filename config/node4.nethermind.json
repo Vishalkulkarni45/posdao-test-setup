@@ -1,13 +1,14 @@
 {
   "Init": {
     "WebSocketsEnabled": true,
-    "StoreReceipts" : true,
+    "StoreReceipts": true,
     "IsMining": true,
     "ChainSpecPath": "./data/spec.json",
     "BaseDbPath": "./data/node4",
     "LogDirectory": "./data/node4",
     "LogFileName": "nethermind.logs.txt",
-    "StaticNodesPath": "./data/reserved-peers"
+    "StaticNodesPath": "./data/reserved-peers",
+    "DiagnosticMode": "MemDb"
   },
   "Network": {
     "DiscoveryPort": 30304,
@@ -31,20 +32,21 @@
   "Sync": {
     "FastSync": false
   },
-  "Aura":
-  {
+  "Aura": {
     "ForceSealing": true,
     "AllowAuRaPrivateChains": true
   },
-  "KeyStore":
-  {
+  "KeyStore": {
     "BlockAuthorAccount": "0xf67cc5231c5858ad6cc87b105217426e17b824bb",
-    "PasswordFiles": ["./config/password"],
-    "UnlockAccounts": ["0xf67cc5231c5858ad6cc87b105217426e17b824bb"],
+    "PasswordFiles": [
+      "./config/password"
+    ],
+    "UnlockAccounts": [
+      "0xf67cc5231c5858ad6cc87b105217426e17b824bb"
+    ],
     "KeyStoreDirectory": "./data/node4/keys/DPoSChain"
   },
-  "Mining":
-  {
+  "Mining": {
     "MinGasPrice": "1000000000",
     "TargetBlockGasLimit": "12000000"
   }
