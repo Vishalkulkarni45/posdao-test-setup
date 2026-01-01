@@ -11,7 +11,24 @@ if [[ $CLIENT == *"openethereum"* ]]; then
 else
     extension="nethermind.json"
 fi
+
+# Get absolute path to the current directory
+WORKDIR=$(pwd)
+
 for i in $(seq 0 6); do
-    "$CLIENT" --config "./config/node${i}.${extension}" >> "./data/node${i}/log" 2>&1 &
+    if [[ $CLIENT == *"nethermind"* ]]; then
+        # Use Docker for Nethermind with host network and volume mounts
+        sudo docker run -d \
+            --name "nethermind-node${i}" \
+            --network host \
+            --mount type=bind,source="${WORKDIR}/config",target=/nethermind/config,readonly \
+            --mount type=bind,source="${WORKDIR}/data",target=/nethermind/data \
+            nethermind/nethermind:latest \
+            --config "/nethermind/config/node${i}.${extension}" \
+            >> "${WORKDIR}/data/node${i}/log" 2>&1
+    else
+        # Use binary for OpenEthereum
+        "$CLIENT" --config "./config/node${i}.${extension}" >> "./data/node${i}/log" 2>&1 &
+    fi
     node ./scripts/getReservedPeer.js "$i"
 done
