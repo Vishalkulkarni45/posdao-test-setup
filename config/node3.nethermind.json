@@ -50,7 +50,7 @@
     "KeyStoreDirectory": "./data/node3/keys/DPoSChain"
   },
   "Mining": {
-    "MinGasPrice": "1000000000",
+    "MinGasPrice": "0",
     "TargetBlockGasLimit": "12000000"
   }
 }
