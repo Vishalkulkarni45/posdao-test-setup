@@ -10,7 +10,16 @@ function kill_at_port {
 	fi
 }
 
-# Kill test nodes.
+# Stop Docker containers if they exist
+for i in $(seq 0 6); do
+    if sudo docker ps -a --format '{{.Names}}' | grep -q "^nethermind-node${i}$"; then
+        echo "Stopping and removing Docker container nethermind-node${i}"
+        sudo docker stop "nethermind-node${i}" 2>/dev/null || true
+        sudo docker rm "nethermind-node${i}" 2>/dev/null || true
+    fi
+done
+
+# Kill test nodes (for non-Docker processes).
 for i in $(seq 0 6); do
     kill_at_port 854$i
 done

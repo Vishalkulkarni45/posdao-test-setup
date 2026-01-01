@@ -40,6 +40,12 @@ async function main() {
   //  specFile.params.validateServiceTransactionsTransition = "0"; // OpenEthereum specific
   //}
 
+  // Add balance to OWNER address for test transactions
+  const owner = process.env.OWNER.trim().toLowerCase();
+  specFile.accounts[owner] = {
+    balance: '100000000000000000000' // 100 ETH
+  };
+
   await promisify(fs.writeFile)(__dirname + '/../data/spec.json', JSON.stringify(specFile, null, '  '), 'UTF-8');
 }
 

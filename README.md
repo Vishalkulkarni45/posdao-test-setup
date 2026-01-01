@@ -47,26 +47,20 @@ $ openethereum/target/release/openethereum --version
 
 ### Nethermind
 
-To integrate with [Nethermind](https://github.com/NethermindEth/nethermind), the following structure of folders is assumed:
-```
-.
-├── nethermind
-├── posdao-test-setup
-```
-So there should be two folders on the same level and `posdao-test-setup` will use a binary from the `nethermind` folder, namely the binary is assumed to be at `../nethermind/bin/Nethermind.Runner` relative to `posdao-test-setup` root.
+This project uses Docker to run [Nethermind](https://github.com/NethermindEth/nethermind) nodes. When you run the tests with `npm run all-nethermind`, the setup script will automatically:
+- Pull the `nethermind/nethermind:latest` Docker image from Docker Hub
+- Start 7 Nethermind nodes as Docker containers (node0 through node6)
+- Mount the `config/` and `data/` directories from your workspace into each container:
+  - **config/** - Each node reads its configuration file (e.g., `node0.nethermind.json`) from this directory. The configurations specify network parameters, mining settings, and RPC/WebSocket ports (8541-8543)
+  - **data/** - Each node stores its blockchain data, logs, and keys in its own subdirectory (e.g., `data/node0/`). This ensures blockchain state persists between test runs and allows you to inspect logs for debugging
 
-A pre-compiled binary can be downloaded from the [releases page](https://github.com/NethermindEth/nethermind/releases) (versions >= v1.12.7 are supported). You need to maintain directory structure and naming conventions:
-```bash
-# move up from posdao-test-setup root
-$ cd ..
-$ mkdir -p nethermind/bin
-# an example for Linux binary
-$ curl -SfL 'https://github.com/NethermindEth/nethermind/releases/download/1.12.7/nethermind-linux-amd64-1.12.7-3b419f1-20220407.zip' -o nethermind/bin/nethermind.zip
-$ unzip nethermind/bin/nethermind.zip -d nethermind/bin
-$ chmod +x nethermind/bin/Nethermind.Runner
-# check that it works and version is correct (compare the version from the binary with version on the release page)
-$ nethermind/bin/Nethermind.Runner --version
-```
+The mounting mechanism allows Docker containers to access files on your host system, enabling configuration changes without rebuilding containers and preserving blockchain data across container restarts.
+
+**Prerequisites:**
+- Docker must be installed and running on your system
+- Your user must have `sudo` access (required for Docker commands)
+
+No manual download or folder structure setup is needed for Nethermind. The Docker image and node configurations are managed automatically by the test scripts.
 
 
 ## Usage
