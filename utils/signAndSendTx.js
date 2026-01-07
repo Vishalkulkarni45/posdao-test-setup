@@ -2,6 +2,7 @@
 const EthereumTx = require('ethereumjs-tx');
 const fs = require('fs');
 const path = require('path');
+const getLatestBlock = require('./getLatestBlock');
 const sign2718Transaction = require('./sign2718Tx.js');
 /*
  * Expects the following structure for tx_details:
@@ -66,6 +67,8 @@ module.exports = async function (web3, tx_details, privateKey, eip1559BaseFee, e
 
   let nonce;
   if (tx_details.nonce == null) {
+    // Use the latest confirmed nonce. If a tx gets stuck, re-sending with the same nonce
+    // gives the node a chance to accept it as a replacement instead of creating a nonce gap.
     nonce = await web3.eth.getTransactionCount(from);
   }
   else {
@@ -91,23 +94,33 @@ module.exports = async function (web3, tx_details, privateKey, eip1559BaseFee, e
     chainId:   chainId,
   };
 
-  if (eip1559BaseFee) { // EIP-1559 is active
+  // Auto-detect EIP-1559 from the latest block if not provided.
+  // (Older web3 versions didn't expose `baseFeePerGas`, which caused legacy txs with too-low
+  // gasPrice to get stuck forever on EIP-1559 networks.)
+  let baseFeePerGas = eip1559BaseFee;
+  if (baseFeePerGas == null) {
+    const latestBlock = await getLatestBlock(web3);
+    baseFeePerGas = latestBlock ? latestBlock.baseFeePerGas : null;
+  }
+  const isEip1559 = baseFeePerGas != null;
+
+  if (isEip1559) { // EIP-1559 is active
     if (gasPrice == 0) {
       _tx.maxFeePerGas = '0';
     } else {
-      _tx.maxFeePerGas = web3.utils.toBN(eip1559BaseFee).add(web3.utils.toBN(gasPrice)).toString(); // maxFeePerGas = baseFee + maxPriorityFeePerGas
+      _tx.maxFeePerGas = web3.utils.toBN(baseFeePerGas).add(web3.utils.toBN(gasPrice)).toString(); // maxFeePerGas = baseFee + maxPriorityFeePerGas
     }
     _tx.maxPriorityFeePerGas = gasPrice;
   }
 
-  if (eip1559BaseFee || eip2930AccessList) {
+  if (isEip1559 || eip2930AccessList) {
     _tx.gas = _tx.gasLimit;
     _tx.accessList = eip2930AccessList || [];
   }
 
   dbg('  **** _tx =', _tx);
   
-  if (eip1559BaseFee) { // EIP-1559 is active
+  if (isEip1559) { // EIP-1559 is active
     const signedTx = sign2718Transaction(_tx, privateKey, 2); // EIP-1559
     const serializedTx = signedTx.rawTransaction;
     return web3.eth.sendSignedTransaction(serializedTx);

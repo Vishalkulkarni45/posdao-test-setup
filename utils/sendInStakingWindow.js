@@ -34,7 +34,11 @@ module.exports = async function (web3, sendTx) {
             exc = e;
             let blocksPassed = (await getCurrentBlockNumber(web3)) - currentBlock;
             if (blocksPassed <= stakeWithdrawDisallowPeriod && !!(await StakingAuRa.instance.methods.areStakeAndWithdrawAllowed().call())) {
-                throw new Error(`Tx failed yet it seems to be in the staking window, exception: ${exc}`);
+                // Preserve original stack trace for debugging.
+                if (exc && typeof exc === 'object' && 'message' in exc) {
+                    exc.message = `Tx failed yet it seems to be in the staking window. Original error: ${exc.message}`;
+                }
+                throw exc;
             }
             else {
                 console.log(`***** Tx execution failed, waiting for stake/withdraw window`);

@@ -19,13 +19,26 @@ function prepareTxIntegerField(value, name) {
   if (value === undefined) {
     throw `${name} is not defined`;
   }
+
+  // Normalize integers to a hex string (or empty string for zero) so rlp.encode()
+  // can handle them across rlp versions (rlp v3 doesn't support BN instances).
   if (!web3.utils.isHexStrict(value)) {
     value = web3.utils.toHex(value);
   }
-  if ((new BN(web3.utils.stripHexPrefix(value), 16)).isZero()) {
+
+  let bn;
+  try {
+    // NOTE: web3@1.10.x exposes a BN wrapper that doesn't respect the "base" arg;
+    // using toBN() keeps hex parsing correct for 0x-prefixed strings.
+    bn = web3.utils.toBN(value);
+  } catch (e) {
+    throw new Error(`${name} has invalid integer value: ${JSON.stringify(value)}`, { cause: e });
+  }
+  if (bn.isZero()) {
     return '';
   }
-  return new BN(web3.utils.hexToNumberString(value));
+
+  return `0x${bn.toString(16)}`;
 }
 
 function prepareTxToField(to) {
@@ -42,7 +55,10 @@ function prepareTxToField(to) {
 }
 
 function signTransaction(txMessage, txType, privateKey) {
-  const messageHash = web3.utils.keccak256('0x' + (txType > 0 ? `0${txType}` : '') + rlp.encode(txMessage).toString('hex'));
+  // rlp.encode() may return a Buffer or Uint8Array depending on rlp version.
+  // Normalize to Buffer so `.toString('hex')` is always valid.
+  const encodedMessage = Buffer.from(rlp.encode(txMessage));
+  const messageHash = web3.utils.keccak256('0x' + (txType > 0 ? `0${txType}` : '') + encodedMessage.toString('hex'));
 
   let privateKeyBuffer;
   if (Buffer.isBuffer(privateKey)) {
@@ -69,7 +85,8 @@ function signTransaction(txMessage, txType, privateKey) {
   txMessageSigned.push(r);
   txMessageSigned.push(s);
 
-  const rawTransaction = '0x' + (txType > 0 ? `0${txType}` : '') + rlp.encode(txMessageSigned).toString('hex');
+  const encodedSignedMessage = Buffer.from(rlp.encode(txMessageSigned));
+  const rawTransaction = '0x' + (txType > 0 ? `0${txType}` : '') + encodedSignedMessage.toString('hex');
   const transactionHash = web3.utils.keccak256(rawTransaction);
 
   return { messageHash, v, r, s, rawTransaction, transactionHash };
