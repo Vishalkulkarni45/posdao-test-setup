@@ -3,7 +3,6 @@ const fs = require("fs");
 const path = require("path");
 const constants = require("../utils/constants.js");
 const SnS = require("../utils/signAndSendTx.js");
-const sendRequest = require("../utils/sendRequest.js");
 const web3 = new Web3("http://localhost:8541");
 web3.eth.transactionConfirmationBlocks = 1;
 const BN = web3.utils.BN;
@@ -20,10 +19,6 @@ const ValidatorSetAuRa = require("../utils/getContract.js")(
     web3
 );
 const StakingAuRa = require("../utils/getContract.js")("StakingAuRa", web3);
-const StakingTokenContract = require("../utils/getContract.js")(
-    "StakingToken",
-    web3
-);
 const sendInStakingWindow = require("../utils/sendInStakingWindow.js");
 const waitForValidatorSetChange = require("../utils/waitForValidatorSetChange.js");
 const waitForNextStakingEpoch = require("../utils/waitForNextStakingEpoch.js");
@@ -40,6 +35,9 @@ describe("Candidates place stakes using native coin on themselves", () => {
     var minDelegatorStakeBN;
     const delegatorsNumber = 10;
     var delegators = [];
+    const gasPrice1 = web3.utils.toWei("1", "gwei");
+    const gasPrice2 = web3.utils.toWei("2", "gwei");
+    const gasPrice3 = web3.utils.toWei("3", "gwei");
 
     before(async () => {
         // this is min stake per a CANDIDATE
@@ -70,6 +68,7 @@ describe("Candidates place stakes using native coin on themselves", () => {
                 "utf8"
             );
         }
+        console.log("befor all done");
     });
 
     it("Owner mints (4x minStake) native coins to candidates", async () => {
@@ -80,7 +79,7 @@ describe("Candidates place stakes using native coin on themselves", () => {
             method: BlockRewardAuRa.instance.methods.setErcToNativeBridgesAllowed(
                 [OWNER]
             ),
-            gasPrice: "0",
+            gasPrice: gasPrice2,
         });
         for (candidate of constants.CANDIDATES) {
             console.log("**** candidate =", JSON.stringify(candidate));
@@ -93,8 +92,9 @@ describe("Candidates place stakes using native coin on themselves", () => {
                     candidateCoinsBN.toString(),
                     candidate.staking
                 ),
-                gasPrice: "0",
+                gasPrice: gasPrice2,
             });
+            console.log(" add extra reciver ");
             pp.tx(tx);
             expect(tx.status, `Failed tx: ${tx.transactionHash}`).to.equal(
                 true
@@ -261,7 +261,7 @@ describe("Candidates place stakes using native coin on themselves", () => {
             method: BlockRewardAuRa.instance.methods.setErcToNativeBridgesAllowed(
                 [OWNER]
             ),
-            gasPrice: "0",
+            gasPrice: gasPrice2,
         });
 
         latestBlock = await getLatestBlock(web3);
@@ -279,7 +279,7 @@ describe("Candidates place stakes using native coin on themselves", () => {
                         delegatorNativeBN.toString(),
                         delegator
                     ),
-                    gasPrice: "0",
+                    gasPrice: gasPrice2,
                     nonce: nonce++,
                 },
                 null,
