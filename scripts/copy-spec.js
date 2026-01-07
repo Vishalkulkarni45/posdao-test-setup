@@ -4,43 +4,66 @@ const readFile = promisify(fs.readFile);
 const assert = require('assert');
 
 async function main() {
-  let specFile = await readFile(__dirname + '/../posdao-contracts/spec.json', 'UTF-8');
-  assert(typeof specFile === 'string');
-  specFile = JSON.parse(specFile);
-  assert(specFile.engine.authorityRound.params.stepDuration != null);
-  
-  // Set step duration map for testing purposes
-  specFile.engine.authorityRound.params.stepDuration = {
-    "0": 5
-  };
-  // Switch to another duration in 120 seconds
-  const newStepDurationTimestamp = Math.round((Date.now() / 1000 + 120) / 10) * 10;
-  specFile.engine.authorityRound.params.stepDuration[newStepDurationTimestamp] = 4;
-  console.log();
-  console.log();
-  console.log('STEP DURATION WILL BE CHANGED AT ', new Date(newStepDurationTimestamp * 1000).toLocaleTimeString('en-US'));
-  console.log();
-  console.log();
+    let specFile = await readFile(
+        __dirname + "/../posdao-contracts/spec.json",
+        "UTF-8"
+    );
+    assert(typeof specFile === "string");
+    specFile = JSON.parse(specFile);
+    assert(specFile.engine.authorityRound.params.stepDuration != null);
 
-  // Activate London hard fork
-  specFile.params.eip3198Transition = "0";
-  specFile.params.eip3529Transition = "0";
-  specFile.params.eip3541Transition = "0";
-  specFile.params.eip1559Transition = "8";
-  specFile.params.eip1559BaseFeeMaxChangeDenominator = "0x8";
-  specFile.params.eip1559ElasticityMultiplier = "0x2";
-  specFile.params.eip1559BaseFeeInitialValue = "0x3b9aca00";
-  specFile.params.eip1559BaseFeeMinValue = "0x1dcd6500";
-  specFile.params.eip1559BaseFeeMinValueTransition = "8";
-  specFile.params.eip1559FeeCollector = "0x1559000000000000000000000000000000000000";
-  specFile.params.eip1559FeeCollectorTransition = specFile.params.eip1559Transition;
-  //specFile.genesis.baseFeePerGas = specFile.params.eip1559BaseFeeInitialValue
+    // Set step duration map for testing purposes
+    specFile.engine.authorityRound.params.stepDuration = {
+        0: 5,
+    };
+    // Switch to another duration in 120 seconds
+    const newStepDurationTimestamp =
+        Math.round((Date.now() / 1000 + 120) / 10) * 10;
+    specFile.engine.authorityRound.params.stepDuration[
+        newStepDurationTimestamp
+    ] = 4;
+    console.log();
+    console.log();
+    console.log(
+        "STEP DURATION WILL BE CHANGED AT ",
+        new Date(newStepDurationTimestamp * 1000).toLocaleTimeString("en-US")
+    );
+    console.log();
+    console.log();
 
-  //if (process.env.CLIENT == 'openethereum') {
-  //  specFile.params.validateServiceTransactionsTransition = "0"; // OpenEthereum specific
-  //}
+    // Activate London hard fork
+    specFile.params.eip3198Transition = "0";
+    specFile.params.eip3529Transition = "0";
+    specFile.params.eip3541Transition = "0";
+    specFile.params.eip1559Transition = "8";
+    specFile.params.eip1559BaseFeeMaxChangeDenominator = "0x8";
+    specFile.params.eip1559ElasticityMultiplier = "0x2";
+    specFile.params.eip1559BaseFeeInitialValue = "0x3b9aca00";
+    specFile.params.eip1559BaseFeeMinValue = "0x1dcd6500";
+    specFile.params.eip1559BaseFeeMinValueTransition = "8";
+    specFile.params.eip1559FeeCollector =
+        "0x1559000000000000000000000000000000000000";
+    specFile.params.eip1559FeeCollectorTransition =
+        specFile.params.eip1559Transition;
+    //specFile.genesis.baseFeePerGas = specFile.params.eip1559BaseFeeInitialValue
 
-  await promisify(fs.writeFile)(__dirname + '/../data/spec.json', JSON.stringify(specFile, null, '  '), 'UTF-8');
+    //if (process.env.CLIENT == 'openethereum') {
+    //  specFile.params.validateServiceTransactionsTransition = "0"; // OpenEthereum specific
+    //}
+
+    // Add balance to OWNER address for test transactions
+
+    const owner = process.env.OWNER.trim().toLowerCase();
+
+    specFile.accounts[owner] = {
+        balance: "100000000000000000000", // 100 ETH
+    };
+
+    await promisify(fs.writeFile)(
+        __dirname + "/../data/spec.json",
+        JSON.stringify(specFile, null, "  "),
+        "UTF-8"
+    );
 }
 
 main();
