@@ -5,7 +5,7 @@ const assert = require('assert');
 
 async function main() {
     let specFile = await readFile(
-        __dirname + "/../posdao-contracts/spec.json",
+        __dirname + "/../PoS-contracts/spec.json",
         "UTF-8"
     );
     assert(typeof specFile === "string");
@@ -64,6 +64,10 @@ async function main() {
         JSON.stringify(specFile, null, "  "),
         "UTF-8"
     );
+    console.log("spec.json file written successfully to", __dirname + "/../data/spec.json");
 }
 
-main();
+main().catch(error => {
+    console.error("Error in copy-spec.js:", error);
+    process.exit(1);
+});

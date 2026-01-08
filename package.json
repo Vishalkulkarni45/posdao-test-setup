@@ -16,7 +16,7 @@
     "cleanup": "bash scripts/stop-test-setup && rm -rf ./accounts ./config ./data && git checkout ./accounts && git checkout ./config && git checkout ./data",
     "get-all-submodules": "git submodule update --init --remote",
     "compile-posdao-contracts": "cd ./posdao-contracts && npm i && npm run compile",
-    "make-spec": ". ./scripts/network-spec && cd ./posdao-contracts && npm i && node ./scripts/make_spec.js && node ../scripts/copy-spec.js",
+    "make-spec": ". ./scripts/network-spec && npm --prefix ./PoS-contracts run make-spec && node ./scripts/copy-spec.js",
     "start-test-setup-openethereum": "bash scripts/start-test-setup ../openethereum/target/release/openethereum",
     "start-test-setup-nethermind": "bash scripts/start-test-setup ../nethermind/bin/Nethermind.Runner",
     "test": "node_modules/.bin/mocha --bail --timeout 1200000",
