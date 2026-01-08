@@ -5,7 +5,7 @@ const Web3 = require('web3');
 const providerUrl = 'ws://localhost:9541';
 const web3 = new Web3(new Web3.providers.WebsocketProvider(providerUrl));
 
-const artifactsPath = '../posdao-contracts/build/contracts/';
+const artifactsPath = '../PoS-contracts/build/contracts/';
 const blockRewardContract = new web3.eth.Contract(
   require(`${artifactsPath}BlockRewardAuRa.json`).abi,
   '0x2000000000000000000000000000000000000001'

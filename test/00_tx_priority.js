@@ -83,7 +83,7 @@
 //     // Set rules in TxPriority contract
 //     isLocalConfig = false;
 
-//     // These rules are set in genesis block, see https://github.com/poanetwork/posdao-contracts/blob/f02fd45c68122b0e508fb8ceb4e12e28e1dc4327/test/mockContracts/TxPriorityMock.sol#L11-L17
+//     // These rules are set in genesis block, see https://github.com/poanetwork/PoS-contracts/blob/f02fd45c68122b0e508fb8ceb4e12e28e1dc4327/test/mockContracts/TxPriorityMock.sol#L11-L17
 //     // await applyPriorityRules('set', [
 //     //   [StakingAuRa.address, '0x00000000', '4'], // StakingAuRa.fallback
 //     // ]);
