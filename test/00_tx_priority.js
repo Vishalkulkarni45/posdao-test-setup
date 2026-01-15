@@ -28,7 +28,6 @@ for (let nodeNumber = 1; nodeNumber <= NUMBER_OF_VALIDATORS; nodeNumber++) {
 const checkOrderWhenDifferentBlocks = false;
 
 describe('TxPriority tests', () => {
-  const gasPrice0 = web3.utils.toWei('0', 'gwei');
   const gasPrice1 = web3.utils.toWei('1', 'gwei');
   const gasPrice2 = web3.utils.toWei('2', 'gwei');
   const gasPrice3 = web3.utils.toWei('3', 'gwei');
@@ -1723,20 +1722,25 @@ describe('TxPriority tests', () => {
     });
   }
 
-  it('Test zero gas price', async function() {
+  it('Test zero effective priority fee (EIP-1559)', async function() {
     // Ensure the account.address is not certified
     expect(await Certifier.instance.methods.certifiedExplicitly(account.address).call()).to.equal(false);
 
-    // Try to send an arbitrary transaction with zero gas price from account.address
+    // On EIP-1559 chains, "0 gas fee tx" is not possible if baseFee > 0.
+    // What we can test instead is a tx with *zero effective priority fee* (tip = 0),
+    // i.e. legacy `gasPrice == baseFeePerGas` for the current block.
+    const baseFeeOnlyGasPrice = await calcMinGasPrice(web3, 0);
+
+    // Try to send an arbitrary transaction with zero effective priority fee from account.address
     let results = await batchSendTransactions([{
       method: web3.eth.sendSignedTransaction,
       params: (await account.signTransaction({
         to: '0x0000000000000000000000000000000000000000',
         gas: '21000',
-        gasPrice: gasPrice0
+        gasPrice: baseFeeOnlyGasPrice
       })).rawTransaction
     }]);
-    expect(results.receipts[0], 'A non-certified arbitrary account succeeded when using zero gas price').to.equal(null);
+    expect(results.receipts[0], 'A non-certified arbitrary account succeeded when using zero effective priority fee').to.equal(null);
 
     // Try to send an arbitrary transaction with non-zero gas price from account.address
     const minGasPrice = await calcMinGasPrice(web3);
