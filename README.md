@@ -1,51 +1,9 @@
 # POSDAO test setup
 
-This is an integration test of AuRa POSDAO with seven OpenEthereum (or Nethermind) nodes running locally from the genesis block.
+This is an integration test of AuRa POSDAO with seven Nethermind nodes running locally from the genesis block.
 
 
-## Ethereum client installation
-
-### OpenEthereum
-
-To integrate with [OpenEthereum](https://github.com/openethereum/openethereum), the following structure of folders is assumed:
-```
-.
-├── openethereum
-├── posdao-test-setup
-```
-So there should be two folders on the same level and `posdao-test-setup` will use a binary from the `openethereum` folder, namely the binary is assumed to be at `../openethereum/target/release/openethereum` relative to `posdao-test-setup` root.
-
-If you want to compile a specific branch/version of `OpenEthereum`, you can clone it directly and build the binary
-```bash
-# move up from posdao-test-setup root
-$ cd ..
-$ git clone https://github.com/openethereum/openethereum
-$ cd openethereum
-#
-# Next step assumes you have Rust and required dependencies installed,
-# for details please check https://github.com/openethereum/openethereum#readme
-# Note that you can instruct Rust to always use the latest stable version for this project by running
-#     $ rustup override set stable
-# in `openethereum` folder.
-#
-# Build the binary
-$ cargo build --release --features final
-```
-
-To save time, you can download a pre-compiled binary from the [releases page](https://github.com/openethereum/openethereum/releases) (versions >= v3.3.5 are supported). But you still need to maintain directory structure and naming conventions:
-```bash
-# move up from posdao-test-setup root
-$ cd ..
-$ mkdir -p openethereum/target/release/
-# an example for macOS binary
-$ curl -SfL 'https://github.com/openethereum/openethereum/releases/download/v3.3.5/openethereum-macos-v3.3.5.zip' -o openethereum/target/release/openethereum.zip
-$ unzip openethereum/target/release/openethereum.zip -d openethereum/target/release
-$ chmod +x openethereum/target/release/openethereum
-# check that it works and the version is correct (compare the version from the binary with version on the release page)
-$ openethereum/target/release/openethereum --version
-```
-
-### Nethermind
+## Nethermind client setup
 
 To integrate with [Nethermind](https://github.com/NethermindEth/nethermind), the following structure of folders is assumed:
 ```
@@ -61,51 +19,56 @@ A pre-compiled binary can be downloaded from the [releases page](https://github.
 $ cd ..
 $ mkdir -p nethermind/bin
 # an example for Linux binary
-$ curl -SfL 'https://github.com/NethermindEth/nethermind/releases/download/1.12.7/nethermind-linux-amd64-1.12.7-3b419f1-20220407.zip' -o nethermind/bin/nethermind.zip
+$ curl -SfL '[REPLACE WITH GITHUB URL]' -o nethermind/bin/nethermind.zip
 $ unzip nethermind/bin/nethermind.zip -d nethermind/bin
 $ chmod +x nethermind/bin/Nethermind.Runner
 # check that it works and version is correct (compare the version from the binary with version on the release page)
 $ nethermind/bin/Nethermind.Runner --version
 ```
 
-
-## Usage
-
-After OpenEthereum client is downloaded or built (see above), the integration test can be launched with `npm run all` (in the root of `posdao-test-setup` working directory). To use Nethermind client instead, the integration test should be launched with `npm run all-nethermind`.
-
-To stop the tests, use `npm run stop-test-setup` (or just use `CTRL+C` in the console).
-
-To stop and clear directories, use `npm run cleanup` in a separate console.
-
-To restart the tests from scratch just run `npm run all` (or `npm run all-nethermind`) again.
-
-To monitor blocks and transactions, use `npm run watcher` in a separate console.
+In MacOS, you may need to allow execution of the binary in System Preferences -> Security & Privacy.
 
 
-## Development
+## Usage (+ Testing)
 
-### Adding new validator nodes and their keys (for OpenEthereum client only)
-
-To add a new validator node, OpenEthereum should generate an account together with its
-secret key like so:
-
+After cloning the repo(PoSDAO test setup), clone PoS-contracts:
+```bash
+$ git clone https://github.com/SCV-Soft/PoS-contracts
 ```
-$ ./openethereum/target/release/openethereum account new --config config/nodeX.openethereum.toml --keys-path ./posdao-test-setup/data/nodeX/keys
+and install dependencies:
+```bash
+$ npm install
+```
+and build the contracts:
+```bash
+$ forge build --quiet
 ```
 
-given a node configuration file `config/nodeX.openethereum.toml` and a newly created
-directory `data/nodeX/keys`. `config/nodeX.openethereum.toml` should then be amended
-with the validator address output by the above command. Also, the keys directory
-`data/nodeX/keys` should be committed to the Git repository: it is part
-of persistent OpenEthereum state which should be kept across state resets which happen
-when you run `npm run all`.
+Then, return to the `posdao-test-setup` folder:
+```bash
+$ cd ..
+```
+Now, install dependencies for the test setup:
+```bash
+$ npm install
+```
+Then, run make-spec.js to generate the test setup configuration files:
+```bash
+$ npm run make-spec
+``` 
+**IMPORTANT**: Before starting the test setup, please make sure to edit the spec.json in the data folder to set the correct value.
+```json
+"randomnessContractAddress": {
+    "2": "0x3000000000000000000000000000000000000001" // it should be "2", not "0"
+},
+```
+To start the test setup, simply run:
+```bash
+$ npm run start-test-setup-nethermind
+```
+This will start seven Nethermind nodes with AuRa POSDAO consensus from the genesis block. To run test, run ``npm run test``.
 
-With this done, the node can be added to the list of started nodes in
-`scripts/start-test-setup` and to the list of stopped nodes in
-`scripts/stop-test-setup`.
 
-If the new node has to be an initial validator, the network spec should reflect
-that: add the node's address to `INITIAL_VALIDATORS` and `STAKING_ADDRESSES` in `scripts/network-spec`.
 
 ## Simulation
 
